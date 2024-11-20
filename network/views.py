@@ -9,7 +9,36 @@ from .models import *
 
 
 def index(request):
+
     return render(request, "network/index.html")
+
+
+
+def recent_posts_view(request):
+    # Fetch the 10 most recent posts
+    num_posts = Posts.objects.count()
+    if num_posts > 10:
+        # If there are more than 10 posts, only fetch the last 10
+        recent_posts = Posts.objects.order_by('-date')[:10]
+    else:
+        recent_posts = Posts.objects.order_by('-date')
+
+    # Manually serialize the posts into a list of dictionaries
+    posts_data = []
+    for post in recent_posts:
+        posts_data.append({
+            'id': post.id,
+            'caption': post.caption,
+            'hashtags': post.hashtags,
+            'likes': post.likes,
+            'comments': post.comments.id if post.comments else None,  # ForeignKey relationship
+            'date': post.date.isoformat(),  # Convert date to a JSON-friendly format
+            'media': post.media.url if post.media else None,
+            'creator': post.creator.id,  # ForeignKey relationship
+        })
+    
+    # Return the data as JSON
+    return JsonResponse(posts_data)
 
 
 def login_view(request):
@@ -73,12 +102,10 @@ def createNewPost(self, request):
     data = json.loads(request.POST)
 
     caption = data.get("caption", "")
-    hashtags = data.get("hastags", {})
     media = data.get("media", None)
 
     post = Posts(
         caption = caption,
-        hashtags = hashtags,
         media = media,
         creator = request.user,
     )
@@ -133,6 +160,9 @@ def post_view(request, id):
 
 def notifications_view(request, id):
     return 200
+
+def unfollow(request, id):
+    return 201
 
 def delete_post(request, id):
 
